@@ -103,7 +103,7 @@ def send_game_state():
     # Send the game state, with a list of peices, their locations, and vote stats for each move if it is their team's turn
 
 @api.route('/game', methods=['POST'])
-def get_move():
+def get_move_vote():
     # Get a move vote, check if it's a logal move, and send a message back to the voter
 
 def check_for_victory():
