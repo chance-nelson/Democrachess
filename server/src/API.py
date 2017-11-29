@@ -14,12 +14,25 @@ import json
 from pymongo import MongoClient
 import bcrypt
 
-currentTeamMove = 0  # 0 == white team, 1 == black team
-voters = []          # Array of who has voted for the current move
+# Initialize JWT utilities
+secret = 'secret'  # Get the secret
+jwt = JWT()        # Init JWT encoder/decoder
+
+# Initialize MongoDB utilities
+mongo = MongoClient('localhost', 27017)  # Connect to the database
+db = mongo.democrachess                  # Get the democrachess database
+users = db.users                         # Get the users collection
+
+# Initialize chess helper variables
+currentTeamMove = 0      # 0 == white team, 1 == black team
+voters = []              # Array of who has voted for the current move
+votersCurrentMatch = []  # Array of all voters over the course of the match
 
 @api.route('/register', methods=['POST'])
 def register():
-
+    # Get the username and password from the request body
+    username = request.get_json()['username']
+    password = request.get_json()['password']
 
 @api.route('/auth', methods=['POST'])
 def auth():
@@ -33,21 +46,18 @@ def auth():
     username = request.get_json()['username']
     password = request.get_json()['password']
     
-    mongo = MongoClient('localhost', 27017)  # Connect to the database
-    db = mongo.democrachess                  # Get the democrachess database
-    collection = db.users                    # Get the users collection
+    # Search the users collection for the user attempting to login
+    user = users.find_one({'username': username})
 
-    # Search the collection for the user attempting to login
-    user = collection.find_one({'username': username})
+    # If the user does not exist, return 401
+    if not user:
+        return make_response(401)
 
     # If there is no user/password combination found in the collection, return
     # a 401 error
     if not bcrypt.checkpw(password, user['password']):
         return make_response(401)
     else:
-        secret = 'secret'  # Get the secret
-        jwt = JWT()        # Init JWT encoder/decoder
-
         # Set up the payload, with issuer, and username
         payload = {
                     'iss': 'http://www.vxhvx.com/democrachess'
