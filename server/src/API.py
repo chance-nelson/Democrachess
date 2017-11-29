@@ -30,9 +30,6 @@ voters = []              # Array of who has voted for the current move
 votersCurrentMatch = []  # Array of all voters over the course of the match
 votes = {}               # Dictionary of all voted moves {'a1b2': 14, ...}
 
-# Initialize the threading timer for making moves, checking for checkmates, etc
-t = threading.Timer(60.0, make_move)
-
 def check_valid_jwt(jwt):
     '''Check the validity of a JSON Web Token
     Args:
@@ -246,4 +243,6 @@ def send_player_stats(username):
     return make_response(jsonify(player), 200)
 
 if __name__ == '__main__':
+    # Initialize the threading timer for making moves, checking for checkmates, etc
+    t = threading.Timer(60.0, make_move)
     api.run()
