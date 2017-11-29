@@ -28,12 +28,21 @@ users = db.users                         # Get the users collection
 board = chess.Board()    # Initialize chess board
 voters = []              # Array of who has voted for the current move
 votersCurrentMatch = []  # Array of all voters over the course of the match
+votes = {}               # Dictionary of all voted moves {'a1b2': 14, ...}
 
 def check_valid_jwt(jwt):
-    if not jwt.decode(jwt, secret, algorithms=['HS256']):
-        return False
-    else:
-        return True
+    '''Check the validity of a JSON Web Token
+    Args:
+        jwt (string): JSON Web Token string
+    Returns:
+        If the JWT is successfully decoded, the username of the JWT is
+        returned. Otherwise, False is returned.
+    '''
+    with decoded as jwt.decode(jwt, secret, algorithms=['HS256']):
+        if not decoded:
+            return False
+        else:
+            return decoded['sub']
 
 @api.route('/register', methods=['POST'])
 def register():
@@ -107,12 +116,21 @@ def auth():
 
 @api.route('/game', methods=['GET'])
 def send_game_state():
+    '''Send the game state to a client
+    Returns:
+        If a valid JWT is found in the headers, a 200 application/json
+        response is sent containg a JSON object containing a FEN game state
+        string, and a dictionary of voters
+    '''
+    if not check_valid_jwt('Authorization')[5::]:
+        return make_response(401)
 
-    # Send the game state, with a list of peices, their locations, and vote stats for each move if it is their team's turn
+    return make_response(jsonify({'state': board.fen(),
+                                  'votes': votes}))
 
 @api.route('/game', methods=['POST'])
 def get_move_vote():
-    # Get a move vote, check if it's a logal move, and send a message back to the voter
+    
 
 def check_for_victory():
     # Check for a victory on the board. If there is, reset the board and alter player statistics for the participants
