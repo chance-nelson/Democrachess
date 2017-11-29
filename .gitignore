@@ -2,3 +2,12 @@ server/bin/*
 server/include/*
 server/lib/*
 pip-selfcheck.json
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
+.externalNativeBuild
