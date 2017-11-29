@@ -130,7 +130,26 @@ def send_game_state():
 
 @api.route('/game', methods=['POST'])
 def get_move_vote():
-    
+    '''Recieve and process a move vote
+    Returns:
+        If the JWT recieved is valid, and the move sent is a legal move, the
+        vote is added to votes{}, and a 200 response is sent. If the move is
+        invalid, a 400 Bad Request response is sent
+    '''
+    if not check_valid_jwt('Authorization')[5::]:
+        return make_response(401)
+
+    move = request.get_json()['vote']
+
+    if move in board.legal_moves():
+        if votes[move]:
+            votes[move] += 1
+        else:
+            votes[move] = 1
+
+        return make_response(200)
+    else:
+        return make_response(400)
 
 def check_for_victory():
     # Check for a victory on the board. If there is, reset the board and alter player statistics for the participants
