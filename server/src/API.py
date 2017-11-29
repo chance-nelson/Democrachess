@@ -132,7 +132,8 @@ def send_game_state():
         return make_response(401)
 
     return make_response(jsonify({'state': board.fen(),
-                                  'votes': votes}))
+                                  'votes': votes}),
+                         200)
 
 @api.route('/game', methods=['POST'])
 def get_move_vote():
@@ -227,4 +228,20 @@ def make_move():
 
 @api.route('/player/<username>', methods=['GET'])
 def send_player_stats(username):
-    
+    '''Send the statistics for a given username.
+    Returns:
+        If the player userame is not in the database, return a 404 Not Found
+        response. If a player is found, return a 200 application/json response
+        with the player statistics in the body
+    '''
+    # Search the users collection for a matching username
+    player = users.find_one({'username': username})
+
+    # If a player isnt found, return 404
+    if not player:
+        return make_response(404)
+
+    player.pop('_id', None)       # Trim the MongoDB _id key off
+    player.pop('password', None)  # Trim the password key off
+
+    return make_response(jsonify(player), 200)
