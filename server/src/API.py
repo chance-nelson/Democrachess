@@ -14,6 +14,7 @@ import json
 from pymongo import MongoClient
 import bcrypt
 import chess
+import threading
 
 # Initialize JWT utilities
 secret = 'secret'  # Get the secret
@@ -29,6 +30,9 @@ board = chess.Board()    # Initialize chess board
 voters = []              # Array of who has voted for the current move
 votersCurrentMatch = []  # Array of all voters over the course of the match
 votes = {}               # Dictionary of all voted moves {'a1b2': 14, ...}
+
+# Initialize the threading timer for making moves, checking for checkmates, etc
+t = threading.Timer(60.0, make_move)
 
 def check_valid_jwt(jwt):
     '''Check the validity of a JSON Web Token
@@ -55,6 +59,7 @@ def register():
     # Get the username and password from the request body
     username = request.get_json()['username']
     password = request.get_json()['password']
+    team = request.get_json()['team']
 
     # Search the users collection for a duplicate username
     user = users.find_one({'username': username})
@@ -68,7 +73,8 @@ def register():
                           'password': bcrypt.hashpw(password,
                                                     bcrypt.gensalt()),
                           'wins': 0,
-                          'losses': 0})
+                          'losses': 0,
+                          'team': team})
  
         # Set up the payload, with issuer, and username
         payload = {
@@ -151,9 +157,74 @@ def get_move_vote():
     else:
         return make_response(400)
 
-def check_for_victory():
-    # Check for a victory on the board. If there is, reset the board and alter player statistics for the participants
+def make_move():
+    '''Make a move based on current voter statistics, and check for endgame
+       results. Designed to be run on threading.Timer
+    '''
+    move = None
+    mostVotes = 0
+    
+    # Check votes{} for the highest voted ove
+    for val in votes:
+        if votes[val] > mostVotes:
+            move = val
+            mostVotes = votes[val]
 
-@api.route('/player/<id>', methods=['GET'])
-def send_player_stats(id):
-    # Send statisctics and information for a certain player
+    # If there are no votes, reset the timer and check again later
+    if not move:
+        return None
+
+    board.push(chess.Move.uci(move))  # Push the most voted move to the board
+
+    votes = {}                        # Reset votes for current move
+
+    # Check if a team has just won the game
+    result = board.result()
+    
+    # White has just won
+    if result is '1-0':
+        # Go through and update the player stats for all participants
+        for player in votersCurrentMatch:
+            playerData = users.find_one({'username': player})
+            
+            if playerData['team'] is 0:
+                playerData['wins']++
+            else:
+                playerData['losses']++
+
+            users.save(playerData)
+
+        # Reset the board and voter stats, starting a new game
+        board = chess.Board()
+        voters = []
+        votersCurrentMatch = []
+    
+    # Black has just won
+    else if result is '1-0':
+        for player in votersCurrentMatch:
+            playerData = users.find_one({'username': player})
+            
+            if playerData['team'] is 0:
+                playerData['losses']++
+            else:
+                playerData['wins']++
+
+            users.save(playerData)
+
+        board = chess.Board()
+        voters = []
+        votersCurrentMatch = []
+
+    # There was a tie
+    else if result is '1/2-1/2':
+        board = chess.Board()
+        voters = []
+        votersCurrentMatch = []
+
+    # There was no result this round
+    else:
+        None
+
+@api.route('/player/<username>', methods=['GET'])
+def send_player_stats(username):
+    
