@@ -30,13 +30,43 @@ votersCurrentMatch = []  # Array of all voters over the course of the match
 
 @api.route('/register', methods=['POST'])
 def register():
+    '''Register a new user
+    Returns:
+        If there are no duplicate usernames in the database, a 200
+        application/json response is sent with a valid JSON Web Token in the
+        body. Otherwise, an empty 406 Not Acceptable response is sent.
+    '''
     # Get the username and password from the request body
     username = request.get_json()['username']
     password = request.get_json()['password']
 
+    # Search the users collection for a duplicate username
+    user = users.find_one({'username': username})
+
+    # If a duplicate user exists, send a 406 error
+    if user:
+        return make_response(406)
+    # Else, create a new entry in the database for the user, and generate a JWT
+    else:
+        users.insert_one({'username': username,
+                          'password': bcrypt.hashpw(password,
+                                                    bcrypt.gensalt()),
+                          'wins': 0,
+                          'losses': 0})
+ 
+        # Set up the payload, with issuer, and username
+        payload = {
+                    'iss': 'http://www.vxhvx.com/democrachess'
+                    'sub': username
+                  }
+        
+        jws = jwt.encode(payload, secret, algorithm='HS256')  # Encode the JWT
+
+        return make_response(jsonify({'jwt': jws}), 200)      # Send it off
+
 @api.route('/auth', methods=['POST'])
 def auth():
-    ''' Authenticate a user with the API, checks username and password
+    '''Authenticate a user with the API, checks username and password
     Returns:
         If the username and hashed password match an entry in the database,
         a 200 application/json response is sent with a valid JSON Web Token 
