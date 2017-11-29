@@ -42,7 +42,7 @@ def check_valid_jwt(jwt):
         If the JWT is successfully decoded, the username of the JWT is
         returned. Otherwise, False is returned.
     '''
-    with decoded as jwt.decode(jwt, secret, algorithms=['HS256']):
+    with jwt.decode(jwt, secret, algorithms=['HS256']) as decoded:
         if not decoded:
             return False
         else:
@@ -78,7 +78,7 @@ def register():
  
         # Set up the payload, with issuer, and username
         payload = {
-                    'iss': 'http://www.vxhvx.com/democrachess'
+                    'iss': 'http://www.vxhvx.com/democrachess',
                     'sub': username
                   }
         
@@ -112,7 +112,7 @@ def auth():
     else:
         # Set up the payload, with issuer, and username
         payload = {
-                    'iss': 'http://www.vxhvx.com/democrachess'
+                    'iss': 'http://www.vxhvx.com/democrachess',
                     'sub': username
                   }
         
@@ -189,9 +189,9 @@ def make_move():
             playerData = users.find_one({'username': player})
             
             if playerData['team'] is 0:
-                playerData['wins']++
+                playerData['wins'] += 1
             else:
-                playerData['losses']++
+                playerData['losses'] += 1
 
             users.save(playerData)
 
@@ -201,14 +201,14 @@ def make_move():
         votersCurrentMatch = []
     
     # Black has just won
-    else if result is '1-0':
+    elif result is '1-0':
         for player in votersCurrentMatch:
             playerData = users.find_one({'username': player})
             
             if playerData['team'] is 0:
-                playerData['losses']++
+                playerData['losses'] += 1
             else:
-                playerData['wins']++
+                playerData['wins'] += 1
 
             users.save(playerData)
 
@@ -217,7 +217,7 @@ def make_move():
         votersCurrentMatch = []
 
     # There was a tie
-    else if result is '1/2-1/2':
+    elif result is '1/2-1/2':
         board = chess.Board()
         voters = []
         votersCurrentMatch = []
@@ -245,3 +245,6 @@ def send_player_stats(username):
     player.pop('password', None)  # Trim the password key off
 
     return make_response(jsonify(player), 200)
+
+if __name__ == '__main__':
+    api.run()
