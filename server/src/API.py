@@ -13,6 +13,7 @@ import JWT
 import json
 from pymongo import MongoClient
 import bcrypt
+import chess
 
 # Initialize JWT utilities
 secret = 'secret'  # Get the secret
@@ -24,9 +25,15 @@ db = mongo.democrachess                  # Get the democrachess database
 users = db.users                         # Get the users collection
 
 # Initialize chess helper variables
-currentTeamMove = 0      # 0 == white team, 1 == black team
+board = chess.Board()    # Initialize chess board
 voters = []              # Array of who has voted for the current move
 votersCurrentMatch = []  # Array of all voters over the course of the match
+
+def check_valid_jwt(jwt):
+    if not jwt.decode(jwt, secret, algorithms=['HS256']):
+        return False
+    else:
+        return True
 
 @api.route('/register', methods=['POST'])
 def register():
@@ -100,6 +107,7 @@ def auth():
 
 @api.route('/game', methods=['GET'])
 def send_game_state():
+
     # Send the game state, with a list of peices, their locations, and vote stats for each move if it is their team's turn
 
 @api.route('/game', methods=['POST'])
