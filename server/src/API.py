@@ -6,19 +6,18 @@ moves, and authenticates players and alters player statistics
 '''
 
 from flask import Flask
-api = Flask(__name__)
-from api import views
-from api import api
-import JWT
+import jwt 
 import json
 from pymongo import MongoClient
 import bcrypt
 import chess
 import threading
 
+api = Flask(__name__)
+
 # Initialize JWT utilities
 secret = 'secret'  # Get the secret
-jwt = JWT()        # Init JWT encoder/decoder
+
 
 # Initialize MongoDB utilities
 mongo = MongoClient('localhost', 27017)  # Connect to the database
