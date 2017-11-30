@@ -5,7 +5,7 @@ Handles all requests for getting the game state, keeps track of voting and
 moves, and authenticates players and alters player statistics
 '''
 
-from flask import Flask
+from flask import Flask, request, make_response, jsonify
 import jwt 
 import json
 from pymongo import MongoClient
@@ -62,11 +62,11 @@ def register():
 
     # If a duplicate user exists, send a 406 error
     if user:
-        return make_response(406)
+        return ('', 406)
     # Else, create a new entry in the database for the user, and generate a JWT
     else:
         users.insert_one({'username': username,
-                          'password': bcrypt.hashpw(password,
+                          'password': bcrypt.hashpw(password.encode('utf-8'),
                                                     bcrypt.gensalt()),
                           'wins': 0,
                           'losses': 0,
@@ -80,7 +80,7 @@ def register():
         
         jws = jwt.encode(payload, secret, algorithm='HS256')  # Encode the JWT
 
-        return make_response(jsonify({'jwt': jws}), 200)      # Send it off
+        return make_response(jsonify({'jwt': str(jws)})), 200      # Send it off
 
 @api.route('/auth', methods=['POST'])
 def auth():
@@ -99,12 +99,12 @@ def auth():
 
     # If the user does not exist, return 401
     if not user:
-        return make_response(401)
+        return ('', 401)
 
     # If there is no user/password combination found in the collection, return
     # a 401 error
-    if not bcrypt.checkpw(password, user['password']):
-        return make_response(401)
+    if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
+        return ('', 401)
     else:
         # Set up the payload, with issuer, and username
         payload = {
@@ -114,7 +114,7 @@ def auth():
         
         jws = jwt.encode(payload, secret, algorithm='HS256')  # Encode the JWT
 
-        return make_response(jsonify({'jwt': jws}), 200)      # Send it off
+        return make_response(jsonify({'jwt': str(jws)}))           # Send it off
 
 @api.route('/game', methods=['GET'])
 def send_game_state():
@@ -125,11 +125,9 @@ def send_game_state():
         string, and a dictionary of voters
     '''
     if not check_valid_jwt('Authorization')[5::]:
-        return make_response(401)
+        return ('', 401)
 
-    return make_response(jsonify({'state': board.fen(),
-                                  'votes': votes}),
-                         200)
+    return make_response(jsonify({'state': board.fen(), 'votes': votes})), 200
 
 @api.route('/game', methods=['POST'])
 def get_move_vote():
@@ -140,7 +138,7 @@ def get_move_vote():
         invalid, a 400 Bad Request response is sent
     '''
     if not check_valid_jwt('Authorization')[5::]:
-        return make_response(401)
+        return ('', 401)
 
     move = request.get_json()['vote']
 
@@ -150,11 +148,11 @@ def get_move_vote():
         else:
             votes[move] = 1
 
-        return make_response(200)
+        return ('', 200)
     else:
-        return make_response(400)
+        return ('', 400)
 
-def make_move():
+def make_move(board, voters, votersCurrentMatch, votes):
     '''Make a move based on current voter statistics, and check for endgame
        results. Designed to be run on threading.Timer
     '''
@@ -171,6 +169,8 @@ def make_move():
 
     # If there are no votes, reset the timer and check again later
     if not move:
+        t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+        t.start()
         return None
 
     board.push(chess.Move.uci(move))  # Push the most voted move to the board
@@ -224,6 +224,9 @@ def make_move():
     else:
         None
 
+    t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+    t.start()
+
 @api.route('/player/<username>', methods=['GET'])
 def send_player_stats(username):
     '''Send the statistics for a given username.
@@ -237,7 +240,7 @@ def send_player_stats(username):
 
     # If a player isnt found, return 404
     if not player:
-        return make_response(404)
+        return 404
 
     player.pop('_id', None)       # Trim the MongoDB _id key off
     player.pop('password', None)  # Trim the password key off
@@ -246,5 +249,6 @@ def send_player_stats(username):
 
 if __name__ == '__main__':
     # Initialize the threading timer for making moves, checking for checkmates, etc
-    t = threading.Timer(5.0, make_move)
-    api.run()
+    t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+    t.start()
+    api.run(debug=True)
