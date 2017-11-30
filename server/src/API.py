@@ -161,6 +161,8 @@ def make_move():
     move = None
     mostVotes = 0
     
+    print("Making a move...")
+
     # Check votes{} for the highest voted ove
     for val in votes:
         if votes[val] > mostVotes:
@@ -244,5 +246,5 @@ def send_player_stats(username):
 
 if __name__ == '__main__':
     # Initialize the threading timer for making moves, checking for checkmates, etc
-    t = threading.Timer(60.0, make_move)
+    t = threading.Timer(5.0, make_move)
     api.run()
