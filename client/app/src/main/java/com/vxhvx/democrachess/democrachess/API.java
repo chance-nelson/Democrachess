@@ -51,7 +51,7 @@ public class API {
 
     public boolean login(String username, String password) throws IOException, JSONException {
         RequestBody body = RequestBody.create(JSON, "{\"username\":\""+ username + "\"," +
-                                                            "\"password\":\""+ password + "\"," + "}");
+                                                            "\"password\":\""+ password + "\"" + "}");
 
         HTTPPoster poster = new HTTPPoster(this.url + "/auth", this.client, body);
         new Thread(poster).start();
