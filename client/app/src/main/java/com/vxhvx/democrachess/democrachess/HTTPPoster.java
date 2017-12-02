@@ -1,11 +1,12 @@
 package com.vxhvx.democrachess.democrachess;
 
+import com.squareup.okhttp.OkHttpClient;
+
 import java.io.IOException;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
 /**
  * Created by chance on 12/1/17.

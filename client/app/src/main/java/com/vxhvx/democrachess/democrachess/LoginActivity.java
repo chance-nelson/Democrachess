@@ -1,9 +1,5 @@
 package com.vxhvx.democrachess.democrachess;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -16,30 +12,12 @@ import java.io.IOException;
 
 public class LoginActivity extends AppCompatActivity {
 
-    API client = new API("http://www.vxhvx.com:5000");
+    API client = new API("http://192.168.0.5:5000");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-
-        int PERMISSION = ActivityCompat.checkSelfPermission(this,
-                Manifest.permission.INTERNET);
-
-        System.out.println(PERMISSION);
-
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION);
-
-        System.out.println(PERMISSION);
-
-        PERMISSION = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE);
-
-        System.out.println(PERMISSION);
-
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, PERMISSION);
-        PERMISSION = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE);
-
-        if(ActivityCompat.) System.out.println("Shits fucked, yo");
 
         // Declare buttons and text edit fields
         final Button buttonLogin = (Button) findViewById(R.id.buttonLogin);
@@ -48,15 +26,20 @@ public class LoginActivity extends AppCompatActivity {
         final EditText textEditPassword = (EditText) findViewById(R.id.textInputPassword);
 
         buttonLogin.setOnClickListener(new View.OnClickListener() {
+            boolean success;
+
             @Override
             public void onClick(View v) {
                 try {
-                    client.login(textEditUsername.getText().toString(), textEditPassword.getText().toString());
+                    success = client.login(textEditUsername.getText().toString(), textEditPassword.getText().toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+
+                System.out.println(success);
+
                 System.out.println(client.get_jwt());
             }
         });
@@ -65,7 +48,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
-                    client.register(textEditUsername.getText().toString(), textEditPassword.getText().toString());
+                    //client.register(textEditUsername.getText().toString(), textEditPassword.getText().toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (JSONException e) {
