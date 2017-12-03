@@ -39,7 +39,6 @@ public class API {
         new Thread(poster).start();
 
         Response response = poster.get_response();
-
         while(response == null) response = poster.get_response();
 
         if(response.code() != 200) return false;
