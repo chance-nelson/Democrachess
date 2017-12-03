@@ -65,6 +65,12 @@ public class API {
         return true;
     }
 
+    public String[] get_game_state() {
+
+
+        return null;
+    }
+
     public boolean vote(String move) {
         return false;
     }
