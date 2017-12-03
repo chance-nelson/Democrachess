@@ -17,6 +17,8 @@ public class HTTPPoster implements Runnable {
     private OkHttpClient client;
     private String url;
     private volatile Response response = null;
+    private String headerName = null;
+    private String headerValue = null;
 
     public HTTPPoster(String url, OkHttpClient client, RequestBody body) {
         this.url = url;
@@ -24,12 +26,26 @@ public class HTTPPoster implements Runnable {
         this.body = body;
     }
 
+    public void add_header(String name, String value) {
+        this.headerName = name;
+        this.headerValue = value;
+    }
+
     @Override
     public void run() {
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .build();
+        Request request;
+        if(this.headerValue == null) {
+            request = new Request.Builder()
+                    .url(this.url)
+                    .post(this.body)
+                    .addHeader(this.headerName, this.headerValue)
+                    .build();
+        } else {
+            request = new Request.Builder()
+                    .url(this.url)
+                    .post(this.body)
+                    .build();
+        }
 
         try {
             response = client.newCall(request).execute();
