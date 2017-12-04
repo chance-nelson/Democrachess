@@ -25,12 +25,16 @@ db = mongo.democrachess                  # Get the democrachess database
 users = db.users                         # Get the users collection
 
 # Initialize chess helper variables
+global board 
 board = chess.Board()    # Initialize chess board
+global voters 
 voters = []              # Array of who has voted for the current move
+global votersCurrentMatch 
 votersCurrentMatch = []  # Array of all voters over the course of the match
+global votes 
 votes = {}               # Dictionary of all voted moves {'a1b2': 14, ...}
 
-def check_valid_jwt(jwt):
+def check_valid_jwt(jws):
     '''Check the validity of a JSON Web Token
     Args:
         jwt (string): JSON Web Token string
@@ -38,11 +42,11 @@ def check_valid_jwt(jwt):
         If the JWT is successfully decoded, the username of the JWT is
         returned. Otherwise, False is returned.
     '''
-    with jwt.decode(jwt, secret, algorithms=['HS256']) as decoded:
-        if not decoded:
-            return False
-        else:
-            return decoded['sub']
+    decoded = jwt.decode(jws, secret, algorithms=['HS256'])
+    if not decoded:
+        return False
+    else:
+        return decoded['sub']
 
 @api.route('/register', methods=['POST'])
 def register():
@@ -56,6 +60,7 @@ def register():
     username = request.get_json()['username']
     password = request.get_json()['password']
     team = request.get_json()['team']
+ 
 
     # Search the users collection for a duplicate username
     user = users.find_one({'username': username})
@@ -123,8 +128,8 @@ def send_game_state():
         If a valid JWT is found in the headers, a 200 application/json
         response is sent containg a JSON object containing a FEN game state
         string, and a dictionary of voters
-    '''
-    if not check_valid_jwt('Authorization')[5::]:
+    ''' 
+    if not check_valid_jwt(request.headers['Authorization'][7:]):
         return ('', 401)
 
     return make_response(jsonify({'state': board.fen(), 'votes': votes})), 200
@@ -137,13 +142,13 @@ def get_move_vote():
         vote is added to votes{}, and a 200 response is sent. If the move is
         invalid, a 400 Bad Request response is sent
     '''
-    if not check_valid_jwt('Authorization')[5::]:
+    if not check_valid_jwt(request.headers['Authorization'][7:]):
         return ('', 401)
 
     move = request.get_json()['vote']
 
-    if move in board.legal_moves():
-        if votes[move]:
+    if chess.Move.from_uci(move) in board.legal_moves:
+        if move in votes.keys():
             votes[move] += 1
         else:
             votes[move] = 1
@@ -152,14 +157,17 @@ def get_move_vote():
     else:
         return ('', 400)
 
-def make_move(board, voters, votersCurrentMatch, votes):
+def make_move():#board, voters, votersCurrentMatch, votes):
     '''Make a move based on current voter statistics, and check for endgame
        results. Designed to be run on threading.Timer
     '''
+    global board 
+    global voters 
+    global votersCurrentMatch 
+    global votes 
+
     move = None
     mostVotes = 0
-    
-    print("Making a move...")
 
     # Check votes{} for the highest voted ove
     for val in votes:
@@ -169,19 +177,20 @@ def make_move(board, voters, votersCurrentMatch, votes):
 
     # If there are no votes, reset the timer and check again later
     if not move:
-        t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+        t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
         t.start()
         return None
 
-    board.push(chess.Move.uci(move))  # Push the most voted move to the board
+    board.push(chess.Move.from_uci(move))  # Push the most voted move to the board
 
     votes = {}                        # Reset votes for current move
 
     # Check if a team has just won the game
+    print(board.is_checkmate())
     result = board.result()
     
     # White has just won
-    if result is '1-0':
+    if result == '1-0':
         # Go through and update the player stats for all participants
         for player in votersCurrentMatch:
             playerData = users.find_one({'username': player})
@@ -199,7 +208,8 @@ def make_move(board, voters, votersCurrentMatch, votes):
         votersCurrentMatch = []
     
     # Black has just won
-    elif result is '1-0':
+    elif result == '0-1':
+        print("Black")
         for player in votersCurrentMatch:
             playerData = users.find_one({'username': player})
             
@@ -215,7 +225,7 @@ def make_move(board, voters, votersCurrentMatch, votes):
         votersCurrentMatch = []
 
     # There was a tie
-    elif result is '1/2-1/2':
+    elif result == '1/2-1/2':
         board = chess.Board()
         voters = []
         votersCurrentMatch = []
@@ -224,7 +234,7 @@ def make_move(board, voters, votersCurrentMatch, votes):
     else:
         None
 
-    t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+    t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
     t.start()
 
 @api.route('/player/<username>', methods=['GET'])
@@ -249,6 +259,6 @@ def send_player_stats(username):
 
 if __name__ == '__main__':
     # Initialize the threading timer for making moves, checking for checkmates, etc
-    t = threading.Timer(5.0, make_move, [board, voters, votersCurrentMatch, votes])
+    t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
     t.start()
-    api.run(debug=True)
+    api.run(host='0.0.0.0', debug=True)
