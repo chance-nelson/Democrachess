@@ -2,6 +2,7 @@ package com.vxhvx.democrachess.democrachess;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.provider.SyncStateContract;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -18,6 +19,12 @@ import java.io.IOException;
 public class LoginActivity extends AppCompatActivity {
 
     API client = new API("http://192.168.0.5:5000");
+
+    private void switch_to_game_activity() {
+        Intent intent = new Intent(this, GameActivity.class);
+        intent.putExtra("jwt", client.get_jwt());
+        startActivity(intent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,12 +63,10 @@ public class LoginActivity extends AppCompatActivity {
                     return;
                 }
 
-                System.out.println(textEditUsername.getText().toString());
-
                 try {
                     success = client.login(textEditUsername.getText().toString(), textEditPassword.getText().toString());
                 } catch (Exception e) {
-
+                    e.printStackTrace();
                 }
 
                 if(!success) {
@@ -79,8 +84,7 @@ public class LoginActivity extends AppCompatActivity {
                 }
 
                 if(success) {
-                    Intent intent = new Intent(LoginActivity.this, GameActivity.class);
-                    startActivity(intent);
+                    switch_to_game_activity();
                 }
             }
         });

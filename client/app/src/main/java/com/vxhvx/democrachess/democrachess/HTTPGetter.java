@@ -6,18 +6,16 @@ package com.vxhvx.democrachess.democrachess;
 
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
 import java.io.IOException;
 
-public class HTTPGetter implements Runnable {
-    private RequestBody body;
+public class HTTPGetter implements Runnable{
     private OkHttpClient client;
     private String url;
     private volatile Response response = null;
     private String headerName = null;
-    private String headerValue = null;
+    private volatile String headerValue = null;
 
     public HTTPGetter(String url, OkHttpClient client, String headerName, String headerValue) {
         this.url = url;
@@ -29,17 +27,12 @@ public class HTTPGetter implements Runnable {
     @Override
     public void run() {
         Request request;
-        if(this.headerValue == null) {
-            request = new Request.Builder()
-                    .url(this.url)
-                    .addHeader(this.headerName, this.headerValue)
-                    .build();
-        } else {
-            request = new Request.Builder()
-                    .url(this.url)
-                    .post(this.body)
-                    .build();
-        }
+
+        request = new Request.Builder()
+                .url(this.url)
+                .addHeader(this.headerName, this.headerValue)
+                .get()
+                .build();
 
         try {
             response = client.newCall(request).execute();

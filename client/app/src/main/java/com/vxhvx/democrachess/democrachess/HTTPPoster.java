@@ -3,6 +3,7 @@ package com.vxhvx.democrachess.democrachess;
 import com.squareup.okhttp.OkHttpClient;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
@@ -12,7 +13,7 @@ import com.squareup.okhttp.Response;
  * Created by chance on 12/1/17.
  */
 
-public class HTTPPoster implements Runnable {
+public class HTTPPoster implements Runnable{
     private RequestBody body;
     private OkHttpClient client;
     private String url;
@@ -26,19 +27,23 @@ public class HTTPPoster implements Runnable {
         this.body = body;
     }
 
-    public void add_header(String name, String value) {
-        this.headerName = name;
-        this.headerValue = value;
+    public HTTPPoster(String url, OkHttpClient client, RequestBody body, String headerName, String headerValue) {
+        this.url = url;
+        this.client = client;
+        this.body = body;
+        this.headerName = headerName;
+        this.headerValue = headerValue;
     }
 
     @Override
     public void run() {
         Request request;
-        if(this.headerValue == null) {
+
+        if(headerName != null) {
             request = new Request.Builder()
                     .url(this.url)
                     .post(this.body)
-                    .addHeader(this.headerName, this.headerValue)
+                    .addHeader(headerName, headerValue)
                     .build();
         } else {
             request = new Request.Builder()

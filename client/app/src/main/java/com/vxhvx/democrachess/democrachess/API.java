@@ -9,14 +9,14 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-
+import java.io.Serializable;
 
 
 /** Class for interfacing with the Democrachess REST API
  * Created by chance on 11/29/17.
  */
 
-public class API {
+public class API{
     private String url = null;
     private String jwt = null;
     private OkHttpClient client = new OkHttpClient();
@@ -24,6 +24,11 @@ public class API {
 
     public API(String url) {
         this.url = url;
+    }
+
+    public API(String url, String jwt) {
+        this.url = url;
+        this.jwt = jwt;
     }
 
     public String get_jwt() {
@@ -44,6 +49,7 @@ public class API {
         if(response.code() != 200) return false;
 
         jwt = new JSONObject(response.body().string()).getString("jwt");
+        jwt = jwt.substring(2, jwt.length() - 1);
 
         return true;
     }
@@ -61,18 +67,50 @@ public class API {
         if(response.code() != 200) return false;
 
         jwt = new JSONObject(response.body().string()).getString("jwt");
+        jwt = jwt.substring(2, jwt.length() - 1);
 
         return true;
     }
 
-    public String[] get_game_state() {
+    public String[] get_game_state() throws IOException, JSONException {
+        HTTPGetter getter = new HTTPGetter(this.url + "/game", this.client,
+                                   "Authorization",
+                                   "Bearer " + this.jwt);
 
+        new Thread(getter).start();
 
-        return null;
+        Response response = getter.get_response();
+        while(response == null) response = getter.get_response();
+
+        if(response.code() != 200) return null;
+
+        String json = getter.get_response().body().string();
+
+        while(json == null) {
+            json = getter.get_response().body().string();
+        }
+
+        String gameState = new JSONObject(json).getString("state");
+        JSONObject votes = new JSONObject(json).getJSONObject("votes");
+
+        return new String[]{gameState, votes.toString()};
     }
 
     public boolean vote(String move) {
-        return false;
+        RequestBody body = RequestBody.create(JSON, "{\"vote\":\""+ move + "\"}");
+
+        HTTPPoster poster = new HTTPPoster(this.url + "/game", this.client, body,
+                                   "Authorization",
+                                   "Bearer " + this.jwt);
+
+        new Thread(poster).start();
+
+        Response response = poster.get_response();
+        while(response == null) response = poster.get_response();
+
+        if(response.code() != 200) return false;
+
+        return true;
     }
 
     public String[] get_player_info(String username) {
