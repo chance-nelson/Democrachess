@@ -417,10 +417,12 @@ public class GameActivity extends AppCompatActivity
     }
 
     private void select_legal_moves(String from) {
-        if(board.getSideToMove() == Side.BLACK) {
-            if(playerStats[1].equals("0")) return;
-        } else {
-            if(playerStats[1].equals("1")) return;
+        if(playerStats != null) {
+            if (board.getSideToMove() == Side.BLACK) {
+                if (playerStats[1].equals("0")) return;
+            } else {
+                if (playerStats[1].equals("1")) return;
+            }
         }
 
         MoveList legalMoves = null;
