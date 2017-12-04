@@ -30,6 +30,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -64,7 +65,7 @@ public class GameActivity extends AppCompatActivity
         if(jwt == null) jwt = getIntent().getStringExtra("jwt");
         if(username == null) username = getIntent().getStringExtra("username");
 
-        this.client = new API("http://192.168.0.5:5000", jwt, username);
+        this.client = new API("http://www.vxhvx.com:5000", jwt, username);
 
         boardButtonArray[0][0] = (ImageButton) findViewById(R.id.a1);
         boardButtonArray[0][1] = (ImageButton) findViewById(R.id.a2);
@@ -364,7 +365,24 @@ public class GameActivity extends AppCompatActivity
         } else {
             imageViewTurn.setImageResource(R.drawable.king_white);
         }
-        if(votes != null) textViewVoteStats.setText(votes.toString());
+
+        if(votes != null) {
+            String votesString = "";
+            Iterator it = votes.entrySet().iterator();
+            int columnsWritten = 0;
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                votesString += pair.getKey() + " : " + pair.getValue();
+                columnsWritten++;
+                if(columnsWritten > 3) {
+                    votesString += "\n";
+                    columnsWritten = 0;
+                } else {
+                    votesString += "  ";
+                }
+            }
+            textViewVoteStats.setText(votesString);
+        }
 
         if(this.playerStats != null) {
             NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);

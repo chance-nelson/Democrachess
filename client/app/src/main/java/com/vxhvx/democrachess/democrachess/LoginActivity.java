@@ -14,7 +14,7 @@ import android.widget.TextView;
 
 public class LoginActivity extends AppCompatActivity {
 
-    API client = new API("http://192.168.0.5:5000");
+    API client = new API("http://www.vxhvx.com:5000");
 
     private void switch_to_game_activity() {
         Intent intent = new Intent(this, GameActivity.class);
@@ -78,9 +78,7 @@ public class LoginActivity extends AppCompatActivity {
                             });
                     alertDialog.show();
                     return;
-                }
-
-                if(success) {
+                } else {
                     switch_to_game_activity();
                 }
             }
@@ -121,9 +119,7 @@ public class LoginActivity extends AppCompatActivity {
 
                 try {
                     success = client.register(textEditUsername.getText().toString(), textEditPassword.getText().toString(), registerWhiteOrBlackTeam[0]);
-                } catch (Exception e) {
-
-                }
+                } catch (Exception e) {}
 
                 if(!success) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
@@ -137,16 +133,16 @@ public class LoginActivity extends AppCompatActivity {
                             });
                     alertDialog.show();
                     return;
+                } else {
+                    switch_to_game_activity();
                 }
-
-
             }
         });
 
         buttonBlackTeam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                registerWhiteOrBlackTeam[0] = 0;
+                registerWhiteOrBlackTeam[0] = 1;
                 textViewTeam.setText("Choose Team (if registering): Black");
             }
         });
@@ -154,7 +150,7 @@ public class LoginActivity extends AppCompatActivity {
         buttonWhiteTeam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                registerWhiteOrBlackTeam[0] = 1;
+                registerWhiteOrBlackTeam[0] = 0;
                 textViewTeam.setText("Choose Team (if registering): White");
             }
         });
