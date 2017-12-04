@@ -12,10 +12,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import org.json.JSONException;
-
-import java.io.IOException;
-
 public class LoginActivity extends AppCompatActivity {
 
     API client = new API("http://192.168.0.5:5000");
@@ -23,6 +19,7 @@ public class LoginActivity extends AppCompatActivity {
     private void switch_to_game_activity() {
         Intent intent = new Intent(this, GameActivity.class);
         intent.putExtra("jwt", client.get_jwt());
+        intent.putExtra("username", client.get_username());
         startActivity(intent);
     }
 

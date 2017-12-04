@@ -21,6 +21,7 @@ public class API{
     private String jwt = null;
     private OkHttpClient client = new OkHttpClient();
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    private String username;
 
     public API(String url) {
         this.url = url;
@@ -31,9 +32,17 @@ public class API{
         this.jwt = jwt;
     }
 
+    public API(String url, String jwt, String username) {
+        this.url = url;
+        this.jwt = jwt;
+        this.username = username;
+    }
+
     public String get_jwt() {
         return this.jwt;
     }
+
+    public String get_username() {return this.username; }
 
     public boolean register(String username, String password, int team) throws IOException, JSONException {
         RequestBody body = RequestBody.create(JSON, "{\"username\":\""+ username + "\"," +
@@ -50,6 +59,8 @@ public class API{
 
         jwt = new JSONObject(response.body().string()).getString("jwt");
         jwt = jwt.substring(2, jwt.length() - 1);
+
+        this.username = username;
 
         return true;
     }
@@ -68,6 +79,8 @@ public class API{
 
         jwt = new JSONObject(response.body().string()).getString("jwt");
         jwt = jwt.substring(2, jwt.length() - 1);
+
+        this.username = username;
 
         return true;
     }
@@ -113,7 +126,28 @@ public class API{
         return true;
     }
 
-    public String[] get_player_info(String username) {
-        return null;
+    public String[] get_player_info(String username) throws IOException, JSONException {
+        HTTPGetter getter = new HTTPGetter(this.url + "/player/" + username,
+                this.client, null, null);
+
+        new Thread(getter).start();
+
+        Response response = getter.get_response();
+        while(response == null) response = getter.get_response();
+
+        if(response.code() != 200) return null;
+
+        String json = getter.get_response().body().string();
+
+        while(json == null) {
+            json = getter.get_response().body().string();
+        }
+
+         return new String[] {
+                new JSONObject(json).getString("username"),
+                new JSONObject(json).getString("team"),
+                new JSONObject(json).getString("wins"),
+                new JSONObject(json).getString("losses")
+        };
     }
 }
