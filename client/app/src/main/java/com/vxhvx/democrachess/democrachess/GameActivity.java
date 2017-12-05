@@ -41,7 +41,7 @@ public class GameActivity extends AppCompatActivity
 
     private ImageButton[][] boardButtonArray = new ImageButton[8][8];
     private API client;
-    private Board board;
+    private volatile Board board;
     private Map<String, Integer> votes;
     private boolean pieceSelected = false;
     private ImageButton selected;
@@ -214,7 +214,6 @@ public class GameActivity extends AppCompatActivity
                         while(true) {
                             wait(1000);
                             String[] gameState = null;
-                            board = new Board();
 
                             try {
                                 gameState = client.get_game_state();
@@ -236,7 +235,20 @@ public class GameActivity extends AppCompatActivity
 
                             timeToNextVoteCheck = Double.valueOf(gameState[2]);
                             votes = to_map(votesJSON);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
 
+        new Thread() {
+            public void run() {
+                synchronized (this) {
+                    try {
+                        while(true) {
+                            wait(1000);
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -244,13 +256,8 @@ public class GameActivity extends AppCompatActivity
                                 }
                             });
                         }
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch(NetworkOnMainThreadException e) {e.printStackTrace();}
-                //Intent intent = new Intent(getApplicationContext(), GameActivity.class);
-                //intent.putExtra("jwt", client.get_jwt());
-                //startActivity(intent);
+                    } catch (InterruptedException e) {}
+                }
             }
         }.start();
     }
@@ -317,6 +324,7 @@ public class GameActivity extends AppCompatActivity
 
     public void update_game() {
         Piece[] pieces = board.boardToArray();
+        System.out.println(Arrays.toString(pieces));
 
         clear_board();
 
