@@ -105,8 +105,9 @@ public class API{
 
         String gameState = new JSONObject(json).getString("state");
         JSONObject votes = new JSONObject(json).getJSONObject("votes");
+        double nextVoteAt = new JSONObject(json).getDouble("nextvoteat");
 
-        return new String[]{gameState, votes.toString()};
+        return new String[]{gameState, votes.toString(), Double.toString(nextVoteAt)};
     }
 
     public boolean vote(String move) {

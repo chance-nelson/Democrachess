@@ -31,6 +31,7 @@ import org.json.JSONObject;
 import org.w3c.dom.Text;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -48,6 +49,8 @@ public class GameActivity extends AppCompatActivity
     private ImageView imageViewTurn;
     private ImageView imageViewNavPlayerTeam;
     private String[] playerStats;
+    private double timeToNextVoteCheck = -1;
+    private TextView textViewSecondsToNextVoteCheck;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +137,7 @@ public class GameActivity extends AppCompatActivity
 
         textViewVoteStats = (TextView) findViewById(R.id.textViewVoteStats);
         imageViewTurn = (ImageView) findViewById(R.id.imageViewTurn);
+        textViewSecondsToNextVoteCheck = (TextView) findViewById(R.id.textViewSecondsToNextVoteCheck);
 
         this.board = new Board();
 
@@ -208,7 +212,7 @@ public class GameActivity extends AppCompatActivity
                 try{
                     synchronized (this) {
                         while(true) {
-                            wait(3000);
+                            wait(1000);
                             String[] gameState = null;
                             board = new Board();
 
@@ -230,6 +234,7 @@ public class GameActivity extends AppCompatActivity
                                 return;
                             }
 
+                            timeToNextVoteCheck = Double.valueOf(gameState[2]);
                             votes = to_map(votesJSON);
 
                             runOnUiThread(new Runnable() {
@@ -364,6 +369,11 @@ public class GameActivity extends AppCompatActivity
             imageViewTurn.setImageResource(R.drawable.king_black);
         } else {
             imageViewTurn.setImageResource(R.drawable.king_white);
+        }
+
+        if(timeToNextVoteCheck > 0) {
+            Date date = new Date();
+            textViewSecondsToNextVoteCheck.setText((int) (timeToNextVoteCheck - (date.getTime() / 1000)) + "s");
         }
 
         if(votes != null) {
