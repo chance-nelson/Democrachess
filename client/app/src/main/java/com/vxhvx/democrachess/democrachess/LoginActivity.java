@@ -1,3 +1,9 @@
+/** Class defining the Login/Register activity. Responsible for sending login/register requests
+ *  to the Democrachess API, recieving a JSON Web Token, and then passing that to GameActivity
+ *
+ *  @author: Chance Nelson
+ */
+
 package com.vxhvx.democrachess.democrachess;
 
 import android.content.DialogInterface;
@@ -14,13 +20,16 @@ import android.widget.TextView;
 
 public class LoginActivity extends AppCompatActivity {
 
-    API client = new API("http://www.vxhvx.com:5000");
+    API client = new API("http://www.vxhvx.com:5000");  // Init an API object with the server's
+                                                            // URL
 
     private void switch_to_game_activity() {
-        Intent intent = new Intent(this, GameActivity.class);
-        intent.putExtra("jwt", client.get_jwt());
-        intent.putExtra("username", client.get_username());
-        startActivity(intent);
+        /** Switch to the GameActivity, passing the needed API information with it
+         */
+        Intent intent = new Intent(this, GameActivity.class);  // Declare intent
+        intent.putExtra("jwt", client.get_jwt());                     // Package JWT
+        intent.putExtra("username", client.get_username());           // Package username
+        startActivity(intent);                                              // Start GameActivity
     }
 
     @Override
@@ -37,15 +46,19 @@ public class LoginActivity extends AppCompatActivity {
         final ImageButton buttonBlackTeam = (ImageButton) findViewById(R.id.imageButtonBlackTeam);
         final TextView textViewTeam = (TextView) findViewById(R.id.textViewTeam);
 
-        final int[] registerWhiteOrBlackTeam = {-1};
-        buttonBlackTeam.setBackgroundColor(android.R.color.white);
-        buttonWhiteTeam.setBackgroundColor(android.R.color.white);
+        final int[] registerWhiteOrBlackTeam = {-1};                // int value for tracking team
+                                                                    // for registration (0=W, 1=B)
 
+        buttonBlackTeam.setBackgroundColor(android.R.color.white);  // Set the background colors for
+        buttonWhiteTeam.setBackgroundColor(android.R.color.white);  // the team select buttons
+
+        // OnClickListener for the login button
         buttonLogin.setOnClickListener(new View.OnClickListener() {
             boolean success = false;
 
             @Override
             public void onClick(View v) {
+                // Make sure that the username and password text fields actually have text entered
                 if(textEditUsername.getText().toString().equals("") || textEditPassword.getText().toString().equals("")) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
                     alertDialog.setTitle("No Username/Password");
@@ -60,12 +73,12 @@ public class LoginActivity extends AppCompatActivity {
                     return;
                 }
 
+                // Send a login request to the API. Should return true if the login is successful
                 try {
                     success = client.login(textEditUsername.getText().toString(), textEditPassword.getText().toString());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                } catch (Exception ignored) {}
 
+                // If the login is unsuccessful, alert the user
                 if(!success) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
                     alertDialog.setTitle("Login Error");
@@ -78,17 +91,21 @@ public class LoginActivity extends AppCompatActivity {
                             });
                     alertDialog.show();
                     return;
+
+                // If the login is successful, get everything ready and switch to GameActivity
                 } else {
                     switch_to_game_activity();
                 }
             }
         });
 
+        // OnClickListener for the register button
         buttonRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 boolean success = false;
 
+                // Make sure the user has selected a team to join
                 if(registerWhiteOrBlackTeam[0] == -1) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
                     alertDialog.setTitle("No Team Selected");
@@ -103,6 +120,7 @@ public class LoginActivity extends AppCompatActivity {
                     return;
                 }
 
+                // Make sure the user and password fields have been filled
                 if(textEditUsername.getText().toString().equals("") || textEditPassword.getText().toString().equals("")) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
                     alertDialog.setTitle("No Username/Password");
@@ -117,10 +135,12 @@ public class LoginActivity extends AppCompatActivity {
                     return;
                 }
 
+                // Send a registration request to the API, returns true on success
                 try {
                     success = client.register(textEditUsername.getText().toString(), textEditPassword.getText().toString(), registerWhiteOrBlackTeam[0]);
-                } catch (Exception e) {}
+                } catch (Exception ignored) {}
 
+                // If there is a problem registering, alert the user
                 if(!success) {
                     AlertDialog alertDialog = new AlertDialog.Builder(LoginActivity.this).create();
                     alertDialog.setTitle("Registration Error");
@@ -133,25 +153,29 @@ public class LoginActivity extends AppCompatActivity {
                             });
                     alertDialog.show();
                     return;
+
+                // If the registration is successful, get everything ready and switch to GameActivity
                 } else {
                     switch_to_game_activity();
                 }
             }
         });
 
+        // OnClickListener for the black team select button
         buttonBlackTeam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                registerWhiteOrBlackTeam[0] = 1;
-                textViewTeam.setText("Choose Team (if registering): Black");
+                registerWhiteOrBlackTeam[0] = 1;                              // Set team select
+                textViewTeam.setText("Choose Team (if registering): Black");  // User feedback
             }
         });
 
+        // OnClickListener for the white team select button
         buttonWhiteTeam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                registerWhiteOrBlackTeam[0] = 0;
-                textViewTeam.setText("Choose Team (if registering): White");
+                registerWhiteOrBlackTeam[0] = 0;                              // Set team select
+                textViewTeam.setText("Choose Team (if registering): White");  // User feedback
             }
         });
     }
