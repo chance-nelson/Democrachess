@@ -12,12 +12,12 @@ from pymongo import MongoClient
 import bcrypt
 import chess
 import threading
+import time
 
 api = Flask(__name__)
 
 # Initialize JWT utilities
 secret = 'secret'  # Get the secret
-
 
 # Initialize MongoDB utilities
 mongo = MongoClient('localhost', 27017)  # Connect to the database
@@ -33,6 +33,7 @@ global votersCurrentMatch
 votersCurrentMatch = []  # Array of all voters over the course of the match
 global votes 
 votes = {}               # Dictionary of all voted moves {'a1b2': 14, ...}
+global nextCheckOn
 
 def check_valid_jwt(jws):
     '''Check the validity of a JSON Web Token
@@ -129,10 +130,12 @@ def send_game_state():
         response is sent containg a JSON object containing a FEN game state
         string, and a dictionary of voters
     ''' 
+    global nextCheckOn
+
     if not check_valid_jwt(request.headers['Authorization'][7:]):
         return ('', 401)
 
-    return make_response(jsonify({'state': board.fen(), 'votes': votes})), 200
+    return make_response(jsonify({'state': board.fen(), 'votes': votes, 'nextvoteat': nextCheckOn})), 200
 
 @api.route('/game', methods=['POST'])
 def get_move_vote():
@@ -144,6 +147,17 @@ def get_move_vote():
     '''
     if not check_valid_jwt(request.headers['Authorization'][7:]):
         return ('', 401)
+
+    username = check_valid_jwt(request.headers['Authorization'][7:])
+
+    userStats = users.find_one({'username': username})
+
+    if board.turn == chess.WHITE:
+        if userStats['team'] == 1:
+            return('', 400)
+    else:
+        if userStats['team'] == 0:
+            return ('', 400)
 
     move = request.get_json()['vote']
 
@@ -165,6 +179,7 @@ def make_move():#board, voters, votersCurrentMatch, votes):
     global voters 
     global votersCurrentMatch 
     global votes 
+    global nextCheckOn
 
     move = None
     mostVotes = 0
@@ -177,13 +192,14 @@ def make_move():#board, voters, votersCurrentMatch, votes):
 
     # If there are no votes, reset the timer and check again later
     if not move:
-        t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+        t = threading.Timer(60.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+        nextCheckOn = time.time() + 60.0
         t.start()
         return None
 
     board.push(chess.Move.from_uci(move))  # Push the most voted move to the board
 
-    votes = {}                        # Reset votes for current move
+    votes = {}                             # Reset votes for current move
 
     # Check if a team has just won the game
     print(board.is_checkmate())
@@ -234,7 +250,8 @@ def make_move():#board, voters, votersCurrentMatch, votes):
     else:
         None
 
-    t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+    t = threading.Timer(60.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+    nextCheckOn = time.time() + 60.0
     t.start()
 
 @api.route('/player/<username>', methods=['GET'])
@@ -258,7 +275,10 @@ def send_player_stats(username):
     return make_response(jsonify(player), 200)
 
 if __name__ == '__main__':
+    global nextCheckOn
+
     # Initialize the threading timer for making moves, checking for checkmates, etc
-    t = threading.Timer(5.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+    t = threading.Timer(60.0, make_move)#, [board, voters, votersCurrentMatch, votes])
+    nextCheckOn = time.time() + 60.0
     t.start()
     api.run(host='0.0.0.0', debug=True)
