@@ -1,6 +1,5 @@
 package com.vxhvx.democrachess.democrachess;
 
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.NetworkOnMainThreadException;
@@ -16,37 +15,42 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.github.bhlangonijr.chesslib.Board;
 import com.github.bhlangonijr.chesslib.Piece;
-import com.github.bhlangonijr.chesslib.game.Game;
+import com.github.bhlangonijr.chesslib.Side;
 import com.github.bhlangonijr.chesslib.move.MoveGenerator;
 import com.github.bhlangonijr.chesslib.move.MoveGeneratorException;
 import com.github.bhlangonijr.chesslib.move.MoveList;
 
-import org.json.JSONArray;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 
 public class GameActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private ImageButton[][] boardButtonArray = new ImageButton[8][8];
     private API client;
-    private Board board;
+    private volatile Board board;
     private Map<String, Integer> votes;
     private boolean pieceSelected = false;
     private ImageButton selected;
-
-    public void update_board(Board board) {
-        this.board = board;
-    }
+    private TextView textViewVoteStats;
+    private ImageView imageViewTurn;
+    private ImageView imageViewNavPlayerTeam;
+    private String[] playerStats;
+    private double timeToNextVoteCheck = -1;
+    private TextView textViewSecondsToNextVoteCheck;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,12 +59,16 @@ public class GameActivity extends AppCompatActivity
 
         Bundle bundle = getIntent().getExtras();
         String jwt = null;
+        String username = null;
         if (bundle != null) {
             jwt = bundle.getString("jwt");
+            username = bundle.getString("username");
         }
 
         if(jwt == null) jwt = getIntent().getStringExtra("jwt");
-        this.client = new API("http://192.168.0.5:5000", jwt);
+        if(username == null) username = getIntent().getStringExtra("username");
+
+        this.client = new API("http://www.vxhvx.com:5000", jwt, username);
 
         boardButtonArray[0][0] = (ImageButton) findViewById(R.id.a1);
         boardButtonArray[0][1] = (ImageButton) findViewById(R.id.a2);
@@ -127,6 +135,10 @@ public class GameActivity extends AppCompatActivity
         boardButtonArray[7][6] = (ImageButton) findViewById(R.id.h7);
         boardButtonArray[7][7] = (ImageButton) findViewById(R.id.h8);
 
+        textViewVoteStats = (TextView) findViewById(R.id.textViewVoteStats);
+        imageViewTurn = (ImageView) findViewById(R.id.imageViewTurn);
+        textViewSecondsToNextVoteCheck = (TextView) findViewById(R.id.textViewSecondsToNextVoteCheck);
+
         this.board = new Board();
 
         clear_board();
@@ -175,7 +187,7 @@ public class GameActivity extends AppCompatActivity
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
+/*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -184,6 +196,7 @@ public class GameActivity extends AppCompatActivity
                         .setAction("Action", null).show();
             }
         });
+        */
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -199,12 +212,12 @@ public class GameActivity extends AppCompatActivity
                 try{
                     synchronized (this) {
                         while(true) {
-                            wait(3000);
+                            wait(1000);
                             String[] gameState = null;
-                            board = new Board();
 
                             try {
                                 gameState = client.get_game_state();
+                                playerStats = client.get_player_info(client.get_username());
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 continue;
@@ -220,23 +233,31 @@ public class GameActivity extends AppCompatActivity
                                 return;
                             }
 
+                            timeToNextVoteCheck = Double.valueOf(gameState[2]);
                             votes = to_map(votesJSON);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
 
+        new Thread() {
+            public void run() {
+                synchronized (this) {
+                    try {
+                        while(true) {
+                            wait(1000);
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
                                     update_game();
                                 }
                             });
-                            System.out.println("Refreshed");
                         }
-                    }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch(NetworkOnMainThreadException e) {e.printStackTrace();}
-                //Intent intent = new Intent(getApplicationContext(), GameActivity.class);
-                //intent.putExtra("jwt", client.get_jwt());
-                //startActivity(intent);
+                    } catch (InterruptedException e) {}
+                }
             }
         }.start();
     }
@@ -266,9 +287,9 @@ public class GameActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
+        //if (id == R.id.action_settings) {
+        //    return true;
+        //}
 
         return super.onOptionsItemSelected(item);
     }
@@ -278,20 +299,6 @@ public class GameActivity extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -317,6 +324,7 @@ public class GameActivity extends AppCompatActivity
 
     public void update_game() {
         Piece[] pieces = board.boardToArray();
+        System.out.println(Arrays.toString(pieces));
 
         clear_board();
 
@@ -362,6 +370,55 @@ public class GameActivity extends AppCompatActivity
                 }
             }
         }
+
+        imageViewTurn.setBackgroundColor(Color.parseColor("#999999"));
+
+        if(board.getSideToMove() == Side.BLACK) {
+            imageViewTurn.setImageResource(R.drawable.king_black);
+        } else {
+            imageViewTurn.setImageResource(R.drawable.king_white);
+        }
+
+        if(timeToNextVoteCheck > 0) {
+            Date date = new Date();
+            textViewSecondsToNextVoteCheck.setText((int) (timeToNextVoteCheck - (date.getTime() / 1000)) + "s");
+        }
+
+        if(votes != null) {
+            String votesString = "";
+            Iterator it = votes.entrySet().iterator();
+            int columnsWritten = 0;
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                votesString += pair.getKey() + " : " + pair.getValue();
+                columnsWritten++;
+                if(columnsWritten > 3) {
+                    votesString += "\n";
+                    columnsWritten = 0;
+                } else {
+                    votesString += "  ";
+                }
+            }
+            textViewVoteStats.setText(votesString);
+        }
+
+        if(this.playerStats != null) {
+            NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+            View hView = navigationView.getHeaderView(0);
+
+            TextView navUsername = (TextView) hView.findViewById(R.id.textViewUsername);
+            TextView navStats = (TextView) hView.findViewById(R.id.textViewStats);
+            ImageView navTeam = (ImageView) hView.findViewById(R.id.imageViewPlayerTeam);
+
+            if(playerStats[1] .equals("0")) {
+                navTeam.setImageResource(R.drawable.king_white);
+            } else {
+                navTeam.setImageResource(R.drawable.king_black);
+            }
+
+            navUsername.setText(this.playerStats[0]);
+            navStats.setText("Wins: " + this.playerStats[2] + "\nLosses: " + this.playerStats[3]);
+        }
     }
 
     private Map<String, Integer> to_map(JSONObject object) {
@@ -396,6 +453,14 @@ public class GameActivity extends AppCompatActivity
     }
 
     private void select_legal_moves(String from) {
+        if(playerStats != null) {
+            if (board.getSideToMove() == Side.BLACK) {
+                if (playerStats[1].equals("0")) return;
+            } else {
+                if (playerStats[1].equals("1")) return;
+            }
+        }
+
         MoveList legalMoves = null;
 
         try {

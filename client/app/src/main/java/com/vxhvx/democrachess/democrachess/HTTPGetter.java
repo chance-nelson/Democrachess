@@ -28,11 +28,18 @@ public class HTTPGetter implements Runnable{
     public void run() {
         Request request;
 
-        request = new Request.Builder()
-                .url(this.url)
-                .addHeader(this.headerName, this.headerValue)
-                .get()
-                .build();
+        if(this.headerValue != null && this.headerName != null) {
+            request = new Request.Builder()
+                    .url(this.url)
+                    .addHeader(this.headerName, this.headerValue)
+                    .get()
+                    .build();
+        } else {
+            request = new Request.Builder()
+                    .url(this.url)
+                    .get()
+                    .build();
+        }
 
         try {
             response = client.newCall(request).execute();
